@@ -1,0 +1,50 @@
+# OS / editor
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+build/
+dist/
+pip-wheel-metadata/
+.venv/
+venv/
+env/
+ENV/
+
+# Data / artifacts / logs
+data/
+datasets/
+inputs/
+outputs/
+results/
+logs/
+checkpoints/
+wandb/
+mlruns/
+tensorboard/
+*.log
+
+# Models & large binaries
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.h5
+*.pb
+*.tflite
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# Notebooks cache
+.ipynb_checkpoints/

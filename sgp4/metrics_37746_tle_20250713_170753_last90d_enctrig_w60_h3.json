@@ -1,0 +1,40 @@
+{
+  "metrics": [
+    {
+      "feature": "eccentricity",
+      "RMSE": 5.555676125368336e-06,
+      "MAPE%": 0.022680814436171204
+    },
+    {
+      "feature": "mean_motion",
+      "RMSE": 0.003285938175395131,
+      "MAPE%": 0.3323775948956609
+    },
+    {
+      "feature": "semi_major_axis",
+      "RMSE": 255.57232666015625,
+      "MAPE%": 0.600425386801362
+    },
+    {
+      "feature": "inclination_deg",
+      "RMSE_deg": 0.003834974044255296
+    },
+    {
+      "feature": "raan_deg",
+      "RMSE_deg": 0.03187053978629889
+    },
+    {
+      "feature": "arg_perigee_deg",
+      "RMSE_deg": 1.457412958492627
+    },
+    {
+      "feature": "mean_anomaly_deg",
+      "RMSE_deg": 15.653449737950025
+    }
+  ],
+  "overall_acc_percent": 99.68150540128893,
+  "hidden": 0,
+  "layers": 0,
+  "heads": 0,
+  "noise_sigma": 0.01
+}

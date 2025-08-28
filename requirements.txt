@@ -1,32 +1,28 @@
-# Core utils
+# ─── Core utilities ─────────────────────────────────────────
 requests>=2.31
 python-dotenv>=1.0
 tqdm>=4.66
+rich>=13.7               # nice CLI progress / tables
 
-# Data wrangling & science
+# ─── Data wrangling & science ──────────────────────────────
 pandas>=2.2
 numpy>=1.26
 scikit-learn>=1.4
 
-# Deep-learning stack (CPU or CUDA)
-torch>=2.2           # PyTorch
+# ─── Deep-learning stack (CPU or CUDA) ─────────────────────
+torch>=2.2               # PyTorch
 torchmetrics>=1.3
-pytorch-lightning>=2.2
-pytorch-forecasting>=1.0   # brings Temporal Fusion Transformer
+einops>=0.7              # lightweight tensor ops helper
 
-# Transformers & long-seq models
-transformers>=4.40        # for TimeGPT / HuggingFace models
-einops>=0.7               # some repos require it
-
-# Orbital mechanics
+# ─── Orbital mechanics ─────────────────────────────────────
 sgp4>=2.23
 
-# Plots & notebooks
+# ─── Visualisation & notebooks ─────────────────────────────
 matplotlib>=3.9
 seaborn>=0.13
 jupyterlab>=4.2
 ipykernel>=6.29
 
-# Optional: Informer / TCN reference implementations
-# If you clone official repos you may need:
-#  - nni, pytorch-wavelets, yarl etc. Install on demand.
+# ─── Optional, install on demand ───────────────────────────
+# transformers>=4.40       # for TimeGPT or HF models
+# nni, pytorch-wavelets, yarl … (Informer repos sometimes need these)

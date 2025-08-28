@@ -1,0 +1,9 @@
+model,Best span,Best window,Best horizon,Best param,Worst param
+bilstm,last180d,60.0,1.0,mean_motion,semi_major_axis
+cnnlstm,last180d,60.0,7.0,mean_motion,semi_major_axis
+gru,last180d,30.0,15.0,eccentricity,semi_major_axis
+informer,full,60.0,90.0,eccentricity,semi_major_axis
+lstm,last730d,90.0,90.0,eccentricity,semi_major_axis
+sgp4,,,,eccentricity,semi_major_axis
+tcn,last180d,90.0,7.0,eccentricity,semi_major_axis
+tft,last180d,90.0,30.0,eccentricity,semi_major_axis
