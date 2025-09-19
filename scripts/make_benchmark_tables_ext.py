@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# scripts/make_benchmark_tables_ext.py
+
 from __future__ import annotations
 import argparse, json, math, os, re, sys, subprocess
 from pathlib import Path
@@ -8,7 +7,6 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-# ------------------------- helpers & constants -------------------------
 
 CORE = ["eccentricity","mean_motion","semi_major_axis","inclination_deg","mean_anomaly_deg"]
 
@@ -68,11 +66,7 @@ def save_table(df: pd.DataFrame,
                caption: str | None = None,
                label: str | None = None,
                percent_cols: list[str] | None = None):
-    """
-    Save df to CSV and LaTeX.
-    - Bold minimum per row across latex_bold_min_cols (if provided).
-    - Format % columns with fmt_pct; others with fmt_num.
-    """
+
     ensure_dir(out_dir)
     csv_path = out_dir / f"{name}.csv"
     tex_path = out_dir / f"{name}.tex"
@@ -160,8 +154,6 @@ def benjamini_hochberg(pvals: pd.Series) -> pd.Series:
     out = pd.Series(np.nan, index=pvals.index)
     out.loc[s.index] = np.clip(q, 0, 1)
     return out
-
-# ------------------------- table builders -------------------------
 
 def build_accuracy_geo(dmet: pd.DataFrame) -> pd.DataFrame:
     if not set(["model","feature","RMSE"]).issubset(dmet.columns):
@@ -442,7 +434,6 @@ def build_K1_reproducibility_digest(project_root: Path) -> pd.DataFrame:
         pass
     return pd.DataFrame([rec])
 
-# ------------------------- main -------------------------
 
 def main():
     ap = argparse.ArgumentParser()
@@ -459,7 +450,7 @@ def main():
     dsamp = pd.read_csv(ROOT/"bench_samples.csv") if (ROOT/"bench_samples.csv").exists() else pd.DataFrame()
     profiles = load_profiles(Path("results/profiles"))
 
-    # ---------------- G1: cost summary
+
     try:
         g1 = build_G1_cost_summary(dmet, profiles)
         if not g1.empty:
@@ -469,7 +460,7 @@ def main():
     except Exception as e:
         print(f"⚠️  G1 failed: {e}")
 
-    # ---------------- C5: sample sizes by grid
+
     try:
         c5 = build_C5_sample_sizes(dlog, dsamp)
         if not c5.empty:
@@ -477,7 +468,7 @@ def main():
     except Exception as e:
         print(f"⚠️  C5 failed: {e}")
 
-    # ---------------- D2: improvement vs baseline (span × h)
+
     try:
         d2 = build_D2_improvement_vs_baseline(dlog, args.baseline)
         if not d2.empty:
@@ -486,7 +477,7 @@ def main():
     except Exception as e:
         print(f"⚠️  D2 failed: {e}")
 
-    # ---------------- M2: bootstrap CIs by span
+
     try:
         m2 = build_M2_bootstrap_ci_by_span(dsamp)
         if not m2.empty:
@@ -495,7 +486,7 @@ def main():
     except Exception as e:
         print(f"⚠️  M2 failed: {e}")
 
-    # ---------------- J1: error quantiles by feature × h (× span if present)
+
     try:
         j1 = build_J1_error_quantiles(dlog)
         if not j1.empty:
@@ -504,7 +495,7 @@ def main():
     except Exception as e:
         print(f"⚠️  J1 failed: {e}")
 
-    # ---------------- E2b: Wilcoxon with BH FDR
+
     try:
         e2b = build_E2b_wilcoxon_fdr(dlog)
         if not e2b.empty:
@@ -513,7 +504,7 @@ def main():
     except Exception as e:
         print(f"⚠️  E2b failed: {e}")
 
-    # ---------------- R1..R4: robustness by bins
+
     try:
         r1 = build_R_bins(dsamp, "alt_km", "altitude")
         if not r1.empty:
@@ -546,7 +537,7 @@ def main():
     except Exception as e:
         print(f"⚠️  R4 failed: {e}")
 
-    # ---------------- RTN1/RTN2: along-track & 3D norm
+
     try:
         rtn1, rtn2 = build_RTN(dsamp)
         if not rtn1.empty:
@@ -558,7 +549,7 @@ def main():
     except Exception as e:
         print(f"⚠️  RTN failed: {e}")
 
-    # ---------------- F3: error growth slope
+
     try:
         f3 = build_F3_growth_slope(dlog)
         if not f3.empty:
@@ -567,7 +558,7 @@ def main():
     except Exception as e:
         print(f"⚠️  F3 failed: {e}")
 
-    # ---------------- L1: leaderboard by horizon
+
     try:
         l1 = build_L1_leaderboard(dlog)
         if not l1.empty:
@@ -576,7 +567,7 @@ def main():
     except Exception as e:
         print(f"⚠️  L1 failed: {e}")
 
-    # ---------------- U1: calibration coverage
+
     try:
         u1 = build_U1_calibration(dsamp)
         if not u1.empty:
@@ -585,7 +576,6 @@ def main():
     except Exception as e:
         print(f"⚠️  U1 failed: {e}")
 
-    # ---------------- O1: top outlier windows
     try:
         o1 = build_O1_outliers(dsamp, topn=30)
         if not o1.empty:
@@ -594,7 +584,6 @@ def main():
     except Exception as e:
         print(f"⚠️  O1 failed: {e}")
 
-    # ---------------- H1: window length ablation
     try:
         h1 = build_H1_window_length(dsamp)
         if not h1.empty:
@@ -603,7 +592,6 @@ def main():
     except Exception as e:
         print(f"⚠️  H1 failed: {e}")
 
-    # ---------------- K1: reproducibility digest
     try:
         k1 = build_K1_reproducibility_digest(Path.cwd())
         if not k1.empty:

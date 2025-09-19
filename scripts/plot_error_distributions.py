@@ -1,8 +1,4 @@
-#!/usr/bin/env python3
-# ──────────────────────────────────────────────────────────────
-# scripts/plot_error_distributions.py
-# Generates ECDFs and residual histograms for all models & horizons
-# ──────────────────────────────────────────────────────────────
+
 
 import os
 import pandas as pd
@@ -10,9 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# ───────────────────────────────────────────────
-# Configuration
-# ───────────────────────────────────────────────
+
 DATA_DIR = "results/metrics"       # where CSVs are stored
 OUT_DIR  = "figures/error_analysis"
 os.makedirs(OUT_DIR, exist_ok=True)
@@ -20,9 +14,7 @@ os.makedirs(OUT_DIR, exist_ok=True)
 MODELS   = ["lstm", "bilstm", "gru", "cnnlstm", "tcn", "tft", "informer", "sgp4_monotonic"]
 HORIZONS = [1, 3, 7, 30, 90]       # in days
 
-# ───────────────────────────────────────────────
-# Helper: ECDF plotting
-# ───────────────────────────────────────────────
+
 def plot_ecdf(data, horizon):
     plt.figure(figsize=(7,5))
     for model in MODELS:
@@ -44,9 +36,7 @@ def plot_ecdf(data, horizon):
     plt.close()
     print(f"[saved] {out_path}")
 
-# ───────────────────────────────────────────────
-# Helper: Residual distribution plotting
-# ───────────────────────────────────────────────
+
 def plot_residuals(data, horizon):
     plt.figure(figsize=(8,5))
     for model in MODELS:
@@ -65,9 +55,7 @@ def plot_residuals(data, horizon):
     plt.close()
     print(f"[saved] {out_path}")
 
-# ───────────────────────────────────────────────
-# Main driver
-# ───────────────────────────────────────────────
+
 if __name__ == "__main__":
     for horizon in HORIZONS:
         # Load your per-satellite RMSE/residuals from CSV

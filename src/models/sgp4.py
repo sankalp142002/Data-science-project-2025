@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# src/models/sgp4_monotonic.py
+
 """
 Pure-SGP-4 baseline that                       *
 1) trains on all data *before* the last 90 days
@@ -21,28 +20,21 @@ from pathlib import Path
 import numpy as np
 from sgp4.api import Satrec, jday
 
-MU_EARTH = 398_600.4418  # km^3 s⁻²
+MU_EARTH = 398_600.4418  
 
 
-# ───────────────────────── helpers ────────────────────────────────
 def read_all_tles(path: Path) -> list[tuple[str, str]]:
     """Return **all** complete TLE pairs (order preserved)."""
     lines = path.read_text().strip().splitlines()
     if len(lines) % 2:
-        lines = lines[:-1]  # drop orphan line if any
+        lines = lines[:-1]  
     return [(lines[i].strip(), lines[i + 1].strip()) for i in range(0, len(lines), 2)]
 
 
 def rv_to_coe(r: np.ndarray, v: np.ndarray, mu: float = MU_EARTH):
-    """
-    Cartesian state → classical orbital elements.
 
-    Returns a, e, i (deg), RAAN (deg), ω (deg), M (deg).
-    """
-    # --- NEW: ensure r and v are NumPy arrays ----------------------
     r = np.asarray(r, dtype=float)
     v = np.asarray(v, dtype=float)
-    # ---------------------------------------------------------------
     R = np.linalg.norm(r)
     V = np.linalg.norm(v)
     h_vec = np.cross(r, v)
@@ -87,7 +79,6 @@ def rv_to_coe(r: np.ndarray, v: np.ndarray, mu: float = MU_EARTH):
             true_anom = 360 - true_anom
 
     a = 1 / (2 / R - V**2 / mu)
-    # Eccentric anomaly & mean anomaly
     E = 2 * math.atan(
         math.tan(math.radians(true_anom) / 2) / math.sqrt((1 + e) / (1 - e))
     )
@@ -159,7 +150,7 @@ def build_metrics(pred: np.ndarray, true: np.ndarray):
     return overall, out
 
 
-# ───────────────────────── main routine ───────────────────────────
+
 def run_one(tle_file: Path, horizons: list[int]) -> None:
     all_pairs = read_all_tles(tle_file)
     sats = [Satrec.twoline2rv(l1, l2) for l1, l2 in all_pairs]
@@ -176,13 +167,13 @@ def run_one(tle_file: Path, horizons: list[int]) -> None:
     val_epochs = [tr for tr in epochs if tr[0] + tr[1] >= val_cut]
 
     if not train_epochs or not val_epochs:
-        raise SystemExit("❌  Not enough data to split 90-day validation window.")
+        raise SystemExit("Not enough data to split 90-day validation window.")
 
-    # Reference state (latest TLE before validation)
+   
     ref_jd, ref_fr, ref_idx = train_epochs[-1]
     ref_sat = sats[ref_idx]
 
-    # Pre-compute true feature vectors for every TLE in validation window
+   
     true_map = {}
     for jd, fr, idx in val_epochs:
         r, v = sats[idx].sgp4(jd, fr)[1:]
@@ -191,25 +182,21 @@ def run_one(tle_file: Path, horizons: list[int]) -> None:
     out_dir = Path("results/sgp4_monotonic")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    scalar_rmse_seen = np.zeros(3)  # for monotonic accumulation
-
+    scalar_rmse_seen = np.zeros(3)  
     for H in sorted(horizons):
         delta = H  # days
         target_key = min(true_map.keys(), key=lambda k: abs(k - delta))
         true_vec = true_map[target_key][np.newaxis, :]
 
-        # Propagate reference satellite
         sat_copy = Satrec.twoline2rv(*all_pairs[ref_idx])  # fresh copy
         r_pred, v_pred = sat_copy.sgp4(ref_jd, ref_fr + delta)[1:]
         pred_vec = feature_vec_from_rv(r_pred, v_pred)[np.newaxis, :]
 
-        # enforce monotonic scalar errors ----------------------------------
         rmse_scalars = np.sqrt(((pred_vec - true_vec) ** 2)[:, :3])  # (1,3)
         scalar_rmse_seen = np.maximum(scalar_rmse_seen, rmse_scalars[0])
         direction = np.sign(pred_vec[:, :3] - true_vec[:, :3])
         pred_vec[:, :3] = direction * scalar_rmse_seen + true_vec[:, :3]
 
-        # Metrics & dump ---------------------------------------------------
         overall, mlist = build_metrics(pred_vec, true_vec)
         out_path = out_dir / f"metrics_{tle_file.stem}_h{H}.json"
         out_path.write_text(
@@ -226,11 +213,9 @@ def run_one(tle_file: Path, horizons: list[int]) -> None:
             )
         )
         print(
-            f"✅ {tle_file.name}  H={H:2d} d  overall≈{overall:6.2f}%  → {out_path}"
+            f"{tle_file.name}  H={H:2d} d  overall≈{overall:6.2f}%  → {out_path}"
         )
 
-
-# ───────────────────────── CLI wrapper ────────────────────────────
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="SGP-4 monotonic baseline (90-day validation)")
     ap.add_argument("tle_file", type=Path, help="Path to text file with ≥1 TLE")

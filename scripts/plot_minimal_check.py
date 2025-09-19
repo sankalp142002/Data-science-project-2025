@@ -43,4 +43,4 @@ if not sub.empty:
         fig.suptitle(f"Q4 – window×horizon ratio ({mdl})")
         fig.savefig(OUT/f"q4_window_{mdl}.png", dpi=160, bbox_inches="tight"); plt.close(fig)
 
-print(f"✅ wrote plots to {OUT.resolve()}")
+print(f"wrote plots to {OUT.resolve()}")

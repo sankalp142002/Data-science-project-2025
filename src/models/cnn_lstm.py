@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# src/models/cnn_lstm.py
+
 """
 Causal CNN → LSTM hybrid baseline
 ———————————————————————————————————
@@ -15,7 +14,7 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
-# ───────────────────────── helpers ──────────────────────────
+
 def native(o):
     if isinstance(o, (np.floating, np.integer)):  return o.item()
     if isinstance(o, dict):  return {k: native(v) for k, v in o.items()}
@@ -26,7 +25,7 @@ def wrapped_rad(ps, pc, ts, tc):
     d = torch.atan2(ps, pc) - torch.atan2(ts, tc)
     return (torch.atan2(torch.sin(d), torch.cos(d)) ** 2).mean()
 
-# ───────────────────────── model ────────────────────────────
+
 class CNNLSTMForecast(pl.LightningModule):
     def __init__(self, n_feat: int,
                  hidden: int = 512,
@@ -44,7 +43,6 @@ class CNNLSTMForecast(pl.LightningModule):
         self.lstm = nn.LSTM(hidden, hidden, 1, batch_first=True)
         self.head = nn.Linear(hidden, n_feat)
 
-    # ---------- Lightning hooks ---------------------------------
     def forward(self, x):                     # x: (B,T,F)
         z = self.cnn(x.transpose(1, 2))       # (B,H,T+pad)
         z = z[:, :, :-self.cnn[0].padding[0]] # crop causal pad
@@ -85,7 +83,6 @@ class CNNLSTMForecast(pl.LightningModule):
             # nothing to train – return plain optimizer, no scheduler
             return {"optimizer": opt}
 
-        # normal path
         sched = torch.optim.lr_scheduler.OneCycleLR(
                     opt, max_lr=self.hparams.lr,
                     total_steps=steps, pct_start=0.3,
@@ -94,7 +91,7 @@ class CNNLSTMForecast(pl.LightningModule):
         return {"optimizer": opt,
                 "lr_scheduler": {"scheduler": sched, "interval": "step"}}
 
-# ───────────────────────── training util ────────────────────
+
 def train_one(npz: Path, epochs: int, batch: int,
               hidden: int, kernel: int):
     from src.datamodule import OrbitsModule
@@ -116,7 +113,7 @@ def train_one(npz: Path, epochs: int, batch: int,
                callbacks=[ckpt, es],
                logger=False, enable_model_summary=False).fit(model, dm)
 
-    # ---- evaluate on test split ---------------------------------
+
     model = CNNLSTMForecast.load_from_checkpoint(ckpt.best_model_path)
     model.feats = feats; model.eval()
     device = next(model.parameters()).device
@@ -129,7 +126,7 @@ def train_one(npz: Path, epochs: int, batch: int,
     P, T = torch.cat(P).numpy(), torch.cat(T).numpy()
     P_inv, T_inv = scaler.inverse_transform(P), scaler.inverse_transform(T)
 
-    # ---- metrics ------------------------------------------------
+
     metrics, core = [], []
     for i, name in enumerate(feats):
         if name.endswith(("_sin", "_cos")): continue
@@ -162,9 +159,9 @@ def train_one(npz: Path, epochs: int, batch: int,
             "hidden": hidden, "kernel": kernel,
             "epochs": epochs, "batches": batch
         }), indent=2))
-    print(f"✅ {npz.name}: overall={overall:.2f}% → {out_dir}/metrics_{npz.stem}.json")
+    print(f"{npz.name}: overall={overall:.2f}% → {out_dir}/metrics_{npz.stem}.json")
 
-# ─────────────────────────── CLI ────────────────────────────
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--npz-glob", required=True)

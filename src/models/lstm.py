@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# src/models/lstm_baseline.py
+
 """
 Lightning LSTM baseline that trains on every *.npz produced by preprocess.py
 and writes per‑file metrics to results/lstm_metrics_<stem>.json
@@ -19,7 +18,7 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
-# ───────────────────────── helpers ──────────────────────────
+
 def native(o):
     "Make NumPy scalars JSON‑serialisable."
     if isinstance(o, (np.floating, np.integer)):  return o.item()
@@ -32,7 +31,6 @@ def wrapped_rad(pred_s, pred_c, true_s, true_c):
     d = torch.atan2(torch.sin(d), torch.cos(d))    # wrap to (‑π,π]
     return (d**2).mean()
 
-# ───────────────────────── model ────────────────────────────
 class LSTMForecast(pl.LightningModule):
     def __init__(self, n_feat:int,
                  hidden:int=512, layers:int=3,
@@ -44,7 +42,6 @@ class LSTMForecast(pl.LightningModule):
         self.norm  = nn.LayerNorm(hidden)
         self.head  = nn.Linear(hidden, n_feat)
 
-    # -------- Lightning hooks -------------------------------
     def forward(self, x):
         y,_ = self.lstm(x)
         return self.head(self.norm(y)[:, -1])
@@ -92,26 +89,21 @@ class LSTMForecast(pl.LightningModule):
                 "lr_scheduler": {"scheduler": sched, "interval": "step"}}
 
 
-# ────────────────────────── main loop ───────────────────────
 def train_one(npz:Path, epochs:int, batch:int,
               hidden:int, layers:int):
 
-    # ---- datamodule (70/15/15 split comes from its ctor) ----
     from src.datamodule import OrbitsModule as OrbitalsDataModule
- # local import avoids cycles
     dm = OrbitalsDataModule(npz_glob=str(npz), batch_size=batch)
-    dm.setup()  # build splits, but we’ll load the scaler ourselves
+    dm.setup()  
 
-    # ── path to <stem>_scaler.gz ------------------------------------
-    # ── find the corresponding scaler -------------------------------
-    raw_stem = npz.stem.split("_enc")[0]        # drops _enc<trig|deg>_w…_h…
+    raw_stem = npz.stem.split("_enc")[0]       
     scaler_path = npz.parent / f"{raw_stem}_scaler.gz"
     scaler = joblib.load(scaler_path)
     feats  = list(scaler.feature_names_in_)
 
     model = LSTMForecast(n_feat=len(feats),
                          hidden=hidden, layers=layers)
-    model.feats = feats                       # attach for metrics
+    model.feats = feats                     
 
     ckpt_dir = Path("results/checkpoints/lstm"); ckpt_dir.mkdir(parents=True, exist_ok=True)
     ckpt_cb  = ModelCheckpoint(dirpath=ckpt_dir,
@@ -128,22 +120,21 @@ def train_one(npz:Path, epochs:int, batch:int,
 
     trainer.fit(model, dm)
 
-    # -------- evaluate on test split -------------------------
     model = LSTMForecast.load_from_checkpoint(ckpt_cb.best_model_path)
     model.feats = feats
     model.eval()
-    device = next(model.parameters()).device          # <─ NEW
+    device = next(model.parameters()).device          
     t_dl = dm.test_dataloader()
     P, T = [], []
     with torch.no_grad():
         for x, y in t_dl:
-            x = x.to(device)                          # <─ NEW
+            x = x.to(device)                          
             P.append(model(x).cpu())
             T.append(y)
     P = torch.cat(P).numpy(); T = torch.cat(T).numpy()
     P_inv = scaler.inverse_transform(P); T_inv = scaler.inverse_transform(T)
 
-    # --- per‑feature RMSE & MAPE -----------------------------
+    
     metrics, mape_core = [], []
     for i,name in enumerate(feats):
         if name.endswith("_sin") or name.endswith("_cos"):
@@ -162,9 +153,8 @@ def train_one(npz:Path, epochs:int, batch:int,
             s_idx = feats.index(f"{base}_sin")
             c_idx = feats.index(f"{base}_cos")
         except ValueError:
-            continue                         # not present in this encoding
+            continue                         
 
-        # unwrap → difference in radians, then to degrees
         diff = np.unwrap(
             np.arctan2(P_inv[:, s_idx], P_inv[:, c_idx])
             - np.arctan2(T_inv[:, s_idx], T_inv[:, c_idx])
@@ -184,9 +174,8 @@ def train_one(npz:Path, epochs:int, batch:int,
     out_dir.mkdir(parents=True, exist_ok=True)
     json_path = out_dir / f"metrics_{npz.stem}.json"
     json_path.write_text(json.dumps(out,indent=2))
-    print(f"✅ {npz.name}: overall={overall:.2f}%  → {json_path}")
+    print(f"{npz.name}: overall={overall:.2f}%  → {json_path}")
 
-# ────────────────── CLI ─────────────────────────────────────
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--npz-glob", required=True,

@@ -12,20 +12,18 @@ from torch.utils.data import Dataset, DataLoader
 from torch.optim.lr_scheduler import LinearLR, CosineAnnealingLR, SequentialLR
 from torch_ema import ExponentialMovingAverage
 
-# ───────────────────── device ──────────────────────
 DEV = (torch.device("cuda") if torch.cuda.is_available()
        else (torch.device("mps") if torch.backends.mps.is_available()
              else torch.device("cpu")))
 AMP = DEV.type == "cuda"
 torch.set_float32_matmul_precision("high")
 
-# ─────────────────── data helpers ──────────────────
-ANGLE_COLS = [3, 4, 5, 6]          # indices in 7-feature deg tensors
+ANGLE_COLS = [3, 4, 5, 6]          
 
 
 def _angle_to_vec(deg: np.ndarray) -> np.ndarray:
     rad = np.deg2rad(deg)
-    return np.stack([np.sin(rad), np.cos(rad)], -1)   # (...,2)
+    return np.stack([np.sin(rad), np.cos(rad)], -1) 
 
 
 class WindowDS(Dataset):
@@ -72,7 +70,7 @@ def make_loaders(fp: Path, batch: int):
     va = DataLoader(torch.utils.data.Subset(ds, idx[:n_val]),  batch, shuffle=False)
     return tr, va, ds.L, ds.H, ds.F
 
-# ───────────────────── RevIN ───────────────────────
+
 class RevIN(nn.Module):
     def __init__(self, dim: int):
         super().__init__()
@@ -84,7 +82,7 @@ class RevIN(nn.Module):
             return (x - self.bias) / self.gain * std + mu
         return (x - mu.unsqueeze(1)) / std.unsqueeze(1) * self.gain + self.bias
 
-# ─────────────── Informer encoder stack ─────────────
+
 class ProbSparseMHA(nn.Module):
     def __init__(self, d_model: int, heads: int = 8, drop=.05, ratio=.3):
         super().__init__()
@@ -139,7 +137,7 @@ class Informer(nn.Module):
         out = self.proj(out)
         return self.revin(out, reverse=True, mu=mu, std=std)
 
-# ─────────────── training utils ───────────────────
+
 LIN = slice(0, 3)
 
 def loss_fn(pred, tgt, ep, max_ep):
@@ -187,7 +185,6 @@ def train_one(fp: Path, epochs: int, batch: int, d_model: int, heads: int, block
         else: bad += 1
         if bad >= 20: print("↪ early stop"); break
 
-    # ───── save metrics (EMA weights) ─────
     ema.store(); ema.copy_to(net.parameters()); net.eval()
     preds, trues = [], []
     with torch.no_grad():
@@ -214,9 +211,8 @@ def train_one(fp: Path, epochs: int, batch: int, d_model: int, heads: int, block
         "hidden": d_model, "layers": blocks, "heads": heads,
         "epochs": ep, "batches": batch
     }, indent=2))
-    print(f"✅ {fp.stem}  overall={100 - float(mape[:3].mean()):.2f}%")
+    print(f"{fp.stem}  overall={100 - float(mape[:3].mean()):.2f}%")
 
-# ────────────────── CLI ────────────────────────────
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--npz-glob", required=True)
@@ -231,4 +227,4 @@ if __name__ == "__main__":
     for fp in sorted(glob.glob(a.npz_glob)):
         t0 = time.time()
         train_one(Path(fp), a.epochs, a.batch, a.d_model, a.heads, a.blocks)
-        print(f"⏱ {Path(fp).name}  {(time.time() - t0)/60:4.1f} min\n")
+        print(f"{Path(fp).name}  {(time.time() - t0)/60:4.1f} min\n")

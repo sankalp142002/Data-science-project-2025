@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+
 """
 Generate 'best-in-class' leaderboard counts (ties shared) and a clean,
 aesthetic horizontal bar chart.

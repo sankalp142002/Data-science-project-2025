@@ -69,7 +69,7 @@ def build_ratio_frame(dlog: pd.DataFrame, baseline: str) -> pd.DataFrame:
 def ecdf_plots(perfile: pd.DataFrame, out_dir: Path, horizons=(7,30,90)):
     """eCDF of per-satellite geo-mean RMSE at selected horizons."""
     if perfile.empty:
-        print("ℹ️  ECDF skipped: per-file frame is empty.")
+        print("ℹECDF skipped: per-file frame is empty.")
         return
     for H in horizons:
         dH = perfile[(perfile.h==H) & (perfile.feature.isin(CORE))]
@@ -108,7 +108,7 @@ def residual_distribution_plots(ratio_df: pd.DataFrame,
                                 horizons=(7,30,90)):
     """Horizontal boxplots of RMSE ratios by model, per feature and horizon."""
     if ratio_df.empty:
-        print("ℹ️  Residual distributions skipped: ratio frame is empty.")
+        print("ℹResidual distributions skipped: ratio frame is empty.")
         return
 
     # Clean up model order by median ratio across all
@@ -118,7 +118,7 @@ def residual_distribution_plots(ratio_df: pd.DataFrame,
     for feat in CORE:
         subf = ratio_df[ratio_df.feature==feat]
         if subf.empty: 
-            print(f"ℹ️  Residuals for {feat} skipped: no rows.")
+            print(f"ℹResiduals for {feat} skipped: no rows.")
             continue
 
         # Make a compact grid: one row, len(horizons) columns
@@ -215,7 +215,7 @@ def main():
     residual_distribution_plots(ratio_df, F_Q2, baseline=args.baseline,
                                 horizons=tuple(args.horizons))
 
-    print("✅  ECDF and residual distribution figures generated.")
+    print("ECDF and residual distribution figures generated.")
 
 if __name__ == "__main__":
     main()

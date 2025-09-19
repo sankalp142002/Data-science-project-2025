@@ -2,10 +2,6 @@
 # -----------------------------------------------------------
 # Re‑usable Lightning‑friendly data‑loader for orbital window
 # datasets (NPZ with arrays X [N,L,F] and y [N,F]).
-#
-# • deterministic *chronological* split: train / val / test
-# • works with any window‑length L, horizon H, feature‑count F
-# • combines many NPZ files (same L/H/F) via ConcatDataset
 # -----------------------------------------------------------
 from __future__ import annotations
 
@@ -19,24 +15,13 @@ from torch.utils.data import Dataset, DataLoader, ConcatDataset, Subset
 import pytorch_lightning as pl
 
 
-# --------------------------------------------------------------------------- #
-#  Single‑file window dataset
-# --------------------------------------------------------------------------- #
 class WindowDataset(Dataset):
-    """
-    Memory‑maps a single `<name>_w{L}_h{H}.npz` produced by `preprocess_tle.py`.
-
-    Each sample:
-        X : [L, F]  ‑‑ sequence of past windows
-        y : [F]     ‑‑ target at horizon H
-    """
 
     def __init__(self, npz_file: Path):
         self._npz = np.load(npz_file, allow_pickle=False, mmap_mode="r")
-        self.X = self._npz["X"]   # [N, L, F]
-        self.y = self._npz["y"]   # [N, F]
+        self.X = self._npz["X"]  
+        self.y = self._npz["y"]   
 
-        # Meta for sanity‑checks / logging
         self.N, self.L, self.F = self.X.shape
         self.H = int(npz_file.stem.split("_h")[-1])  # horizon days
         self.file = npz_file
@@ -52,21 +37,7 @@ class WindowDataset(Dataset):
         )
 
 
-# --------------------------------------------------------------------------- #
-#  LightningDataModule
-# --------------------------------------------------------------------------- #
 class OrbitsModule(pl.LightningDataModule):
-    """
-    Example
-    -------
-    dm = OrbitsModule(
-        npz_glob='data/processed/*_w30_h1.npz',
-        batch_size=128,
-        num_workers=4,
-        splits=(0.70, 0.15, 0.15)
-    )
-    trainer = Trainer(..., datamodule=dm)
-    """
 
     def __init__(
         self,
@@ -89,9 +60,7 @@ class OrbitsModule(pl.LightningDataModule):
         self.train_ds: Dataset | None = None
         self.val_ds: Dataset | None = None
         self.test_ds: Dataset | None = None
-
-    # -------- required Lightning hooks ------------------------------------ #
-    def prepare_data(self) -> None:  # noqa: D401
+    def prepare_data(self) -> None:  
         """No downloading needed — files are already on disk."""
         pass
 
@@ -128,18 +97,17 @@ class OrbitsModule(pl.LightningDataModule):
         self.val_ds = Subset(full_ds, indices[n_train : n_train + n_val])
         self.test_ds = Subset(full_ds, indices[-n_test:])
 
-    # ---------------- dataloaders ----------------------------------------- #
     def train_dataloader(self) -> DataLoader:  # noqa: D401
         return DataLoader(
             self.train_ds,
             batch_size=self.batch_size,
-            shuffle=True,          # shuffle *within* training subset
+            shuffle=True,         
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
             drop_last=True,
         )
 
-    def val_dataloader(self) -> DataLoader:  # noqa: D401
+    def val_dataloader(self) -> DataLoader:  
         return DataLoader(
             self.val_ds,
             batch_size=self.batch_size,
@@ -148,7 +116,7 @@ class OrbitsModule(pl.LightningDataModule):
             pin_memory=self.pin_memory,
         )
 
-    def test_dataloader(self) -> DataLoader:  # noqa: D401
+    def test_dataloader(self) -> DataLoader: 
         return DataLoader(
             self.test_ds,
             batch_size=self.batch_size,
@@ -157,10 +125,6 @@ class OrbitsModule(pl.LightningDataModule):
             pin_memory=self.pin_memory,
         )
 
-
-# --------------------------------------------------------------------------- #
-#  CLI sanity‑check
-# --------------------------------------------------------------------------- #
 if __name__ == "__main__":
     import argparse
     from rich import print as rprint

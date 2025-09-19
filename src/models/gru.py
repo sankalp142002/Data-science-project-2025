@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 # ─────────────────────────────────────────────────────────────
 # src/models/gru.py
 # -------------------------------------------------------------
@@ -30,7 +30,7 @@ import torch.nn as nn
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 
-# ───────────────────────── helpers ──────────────────────────
+
 def native(o):
     """Make NumPy scalars JSON‑serialisable."""
     if isinstance(o, (np.floating, np.integer)):
@@ -48,7 +48,7 @@ def wrapped_rad(pred_s, pred_c, true_s, true_c):
     return (d**2).mean()
 
 
-# ───────────────────────── model ────────────────────────────
+
 class GRUForecast(pl.LightningModule):
     def __init__(
         self,
@@ -71,7 +71,7 @@ class GRUForecast(pl.LightningModule):
         self.norm = nn.LayerNorm(hidden)
         self.head = nn.Linear(hidden, n_feat)
 
-    # -------- Lightning hooks --------------------------------
+
     def forward(self, x):
         y, _ = self.gru(x)
         return self.head(self.norm(y)[:, -1])
@@ -128,15 +128,13 @@ class GRUForecast(pl.LightningModule):
 
 
 
-# ────────────────────────── main loop ───────────────────────
+
 def train_one(npz: Path, epochs: int, batch: int, hidden: int, layers: int):
-    # ----- datamodule ---------------------------------------
     from src.datamodule import OrbitsModule  # local import avoids cycles
 
     dm = OrbitsModule(npz_glob=str(npz), batch_size=batch)
     dm.setup()
 
-    # ---- scaler & feature names ----------------------------
     raw_stem = npz.stem.split("_enc")[0]  # drop _enc<*>_w.._h..
     scaler_path = npz.parent / f"{raw_stem}_scaler.gz"
     scaler = joblib.load(scaler_path)
@@ -165,8 +163,6 @@ def train_one(npz: Path, epochs: int, batch: int, hidden: int, layers: int):
         enable_model_summary=False,
     )
     trainer.fit(model, dm)
-
-    # -------- evaluate on test split ------------------------
     model = GRUForecast.load_from_checkpoint(ckpt_cb.best_model_path)
     model.feats = feats
     model.eval()
@@ -181,7 +177,6 @@ def train_one(npz: Path, epochs: int, batch: int, hidden: int, layers: int):
     P_inv = scaler.inverse_transform(P)
     T_inv = scaler.inverse_transform(T)
 
-    # -------- metrics ---------------------------------------
     metrics, mape_core = [], []
     for i, name in enumerate(feats):
         if name.endswith("_sin") or name.endswith("_cos"):
@@ -229,10 +224,9 @@ def train_one(npz: Path, epochs: int, batch: int, hidden: int, layers: int):
     json_path = out_dir / f"metrics_{npz.stem}.json"
     json_path.write_text(json.dumps(out, indent=2))
 
-    print(f"✅ {npz.name}: overall={overall:.2f}%  → {json_path}")
+    print(f"{npz.name}: overall={overall:.2f}%  → {json_path}")
 
 
-# ────────────────── CLI ─────────────────────────────────────
 if __name__ == "__main__":
     argp = argparse.ArgumentParser()
     argp.add_argument("--npz-glob", required=True, help='e.g. "data/processed/*.npz"')

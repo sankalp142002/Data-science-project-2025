@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# src/models/tcn.py
+
 """
 Lightning‑based Temporal Convolutional Network (TCN) baseline
 ————————————————————————————————————————————————————————————
@@ -26,7 +25,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 
-# ───────────────────────── helpers ──────────────────────────
 def native(o):
     "Make NumPy scalars JSON‑serialisable."
     if isinstance(o, (np.floating, np.integer)):
@@ -44,7 +42,6 @@ def wrapped_rad(pred_s, pred_c, true_s, true_c):
     return (d ** 2).mean()
 
 
-# ────────────────────────  model  ──────────────────────────
 class _ResidualBlock(nn.Module):
     def __init__(self, cin, cout, k, d, p):
         super().__init__()
@@ -90,11 +87,11 @@ class TemporalConvNet(nn.Module):
         self.head = nn.Sequential(nn.LayerNorm(hidden),
                                   nn.Linear(hidden, n_feat))
 
-    def forward(self, x):            # x: (B,T,F)
-        z = x.transpose(1, 2)        # → (B,F,T)
-        z = self.tcn(z)              # (B,H,T)
-        z = z[:, :, -1]              # last step
-        return self.head(z)          # (B,F)
+    def forward(self, x):           
+        z = x.transpose(1, 2)       
+        z = self.tcn(z)             
+        z = z[:, :, -1]           
+        return self.head(z)       
 
 
 class TCNForecast(pl.LightningModule):
@@ -108,7 +105,7 @@ class TCNForecast(pl.LightningModule):
         self.save_hyperparameters()
         self.net = TemporalConvNet(n_feat, hidden, levels)
 
-    # --------------- Lightning folds ------------------------
+
     def forward(self, x):
         return self.net(x)
 
@@ -146,10 +143,8 @@ class TCNForecast(pl.LightningModule):
                                 weight_decay=1e-4)
         steps = self.trainer.estimated_stepping_batches or 0
         if steps == 0:                      # ← NEW
-            # nothing to train – return plain optimizer, no scheduler
             return {"optimizer": opt}
 
-        # normal path
         sched = torch.optim.lr_scheduler.OneCycleLR(
                     opt, max_lr=self.hparams.lr,
                     total_steps=steps, pct_start=0.3,
@@ -159,20 +154,18 @@ class TCNForecast(pl.LightningModule):
                 "lr_scheduler": {"scheduler": sched, "interval": "step"}}
 
 
-
-# ────────────────────────── training util ───────────────────
 def train_one(npz: Path,
               epochs: int,
               batch: int,
               hidden: int,
               levels: int):
 
-    # ---------- datamodule (chronological 70/15/15) ----------
+    
     from src.datamodule import OrbitsModule
     dm = OrbitsModule(npz_glob=str(npz), batch_size=batch)
     dm.setup()
 
-    # ---------- scaler / feature names -----------------------
+   
     raw_stem = npz.stem.split("_enc")[0]
     scaler = joblib.load(npz.parent / f"{raw_stem}_scaler.gz")
     feats = list(scaler.feature_names_in_)
@@ -197,7 +190,6 @@ def train_one(npz: Path,
 
     trainer.fit(model, dm)
 
-    # ------------------ test split ---------------------------
     model = TCNForecast.load_from_checkpoint(ckpt_cb.best_model_path)
     model.feats = feats
     device = next(model.parameters()).device
@@ -210,7 +202,6 @@ def train_one(npz: Path,
     P = torch.cat(P).numpy();  T = torch.cat(T).numpy()
     P_inv = scaler.inverse_transform(P);  T_inv = scaler.inverse_transform(T)
 
-    # ---------- metrics -------------------------------------
     metrics, mape_core = [], []
     for i, name in enumerate(feats):
         if name.endswith("_sin") or name.endswith("_cos"):
@@ -251,10 +242,9 @@ def train_one(npz: Path,
         epochs=epochs,
         batches=batch,
     )), indent=2))
-    print(f"✅ {npz.name}: overall={overall:.2f}% → {out_path}")
+    print(f"{npz.name}: overall={overall:.2f}% → {out_path}")
 
 
-# ───────────────────────── CLI ──────────────────────────────
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--npz-glob", required=True,

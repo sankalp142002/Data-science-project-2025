@@ -26,7 +26,7 @@ def make_out(root: Path, name: str) -> Path:
 def savefig_loud(fig, out_path: Path):
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=160, bbox_inches="tight")
-    print(f"🖼️  wrote {out_path}")
+    print(f"wrote {out_path}")
     plt.close(fig)
 
 def load_profiles(prof_root: Path) -> pd.DataFrame:
@@ -351,4 +351,4 @@ if hist_root.exists():
             ax.legend(fontsize=9, ncol=2)
             savefig_loud(fig, F_OVF / "val_curves.png")
 
-print(f"✅  Figures written to {FIG.resolve()}")
+print(f"Figures written to {FIG.resolve()}")

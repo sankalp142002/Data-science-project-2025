@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+
 """
 Estimate model resources (params, memory) from bench_metrics.csv hyperparameters.
 

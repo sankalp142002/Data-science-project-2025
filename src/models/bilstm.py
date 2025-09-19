@@ -1,10 +1,9 @@
-#!/usr/bin/env python3
-# src/models/bilstm_baseline.py
+
 """
 Bi‑directional LSTM baseline.
 Usage
 -----
-python -m src.models.bilstm_baseline \
+python -m src.models.bilstm \
        --npz-glob "data/processed/*.npz" \
        --epochs 60 --batch 128 --hidden 512 --layers 3
 """
@@ -18,7 +17,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 
-# ───────────────────────── helpers ──────────────────────────
 def native(o):
     if isinstance(o, (np.floating, np.integer)): return o.item()
     if isinstance(o, dict):  return {k: native(v) for k, v in o.items()}
@@ -32,7 +30,6 @@ def wrapped_rad(pred_s, pred_c, true_s, true_c):
     return (d ** 2).mean()
 
 
-# ───────────────────────── model ────────────────────────────
 class BiLSTMForecast(pl.LightningModule):
     def __init__(self, n_feat: int, hidden: int = 512, layers: int = 3,
                  lr: float = 3e-3, w_sma: float = 0.07):
@@ -50,7 +47,6 @@ class BiLSTMForecast(pl.LightningModule):
         self.norm = nn.LayerNorm(hidden * 2)    # hidden×2
         self.head = nn.Linear(hidden * 2, n_feat)
 
-    # ---------- Lightning hooks ---------------------------------
     def forward(self, x):
         y, _ = self.lstm(x)
         return self.head(self.norm(y)[:, -1])
@@ -82,8 +78,7 @@ class BiLSTMForecast(pl.LightningModule):
     def configure_optimizers(self):
         opt = torch.optim.AdamW(self.parameters(), lr=self.hparams.lr, weight_decay=1e-4)
         steps = self.trainer.estimated_stepping_batches or 0
-        if steps == 0:                      # ← NEW
-            # nothing to train – return plain optimizer, no scheduler
+        if steps == 0:                     
             return {"optimizer": opt}
 
         # normal path
@@ -96,7 +91,7 @@ class BiLSTMForecast(pl.LightningModule):
                 "lr_scheduler": {"scheduler": sched, "interval": "step"}}
 
 
-# ────────────────────────── main loop ───────────────────────
+
 def train_one(npz: Path, epochs: int, batch: int, hidden: int, layers: int):
     from src.datamodule import OrbitsModule as OrbitalsDataModule
 
@@ -124,7 +119,7 @@ def train_one(npz: Path, epochs: int, batch: int, hidden: int, layers: int):
 
     trainer.fit(model, dm)
 
-    # --------------- evaluation --------------------------------
+
     model = BiLSTMForecast.load_from_checkpoint(ckpt_cb.best_model_path)
     model.feats = feats
     model.eval()
@@ -138,7 +133,7 @@ def train_one(npz: Path, epochs: int, batch: int, hidden: int, layers: int):
     P = torch.cat(P).numpy(); T = torch.cat(T).numpy()
     P_inv = scaler.inverse_transform(P); T_inv = scaler.inverse_transform(T)
 
-    # ‑‑ metrics -------------------------------------------------
+
     metrics, core = [], []
     for i, name in enumerate(feats):
         if name.endswith(("_sin", "_cos")):
@@ -170,7 +165,7 @@ def train_one(npz: Path, epochs: int, batch: int, hidden: int, layers: int):
 
     out_dir = Path("results/bilstm"); out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f"metrics_{npz.stem}.json").write_text(json.dumps(result, indent=2))
-    print(f"✅ {npz.name}: overall={overall:.2f}%  → {out_dir}/metrics_{npz.stem}.json")
+    print(f"{npz.name}: overall={overall:.2f}%  → {out_dir}/metrics_{npz.stem}.json")
 
 
 # ────────────────── CLI ─────────────────────────────────────

@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
-# src/models/tft.py
+
 """
-Temporal‑Fusion Transformer baseline
+Temporal Fusion Transformer baseline
 ————————————————————————————————————————————————————————
 * Same datamodule, loss weighting and metrics logic as the RNN/TCN baselines
 * Checkpoints → results/checkpoints/tft/
@@ -24,7 +23,6 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
-# ───────────────────────── helpers ──────────────────────────
 def native(o):
     if isinstance(o, (np.floating, np.integer)):  return o.item()
     if isinstance(o, dict):  return {k: native(v) for k, v in o.items()}
@@ -38,7 +36,7 @@ def wrapped_rad(ps, pc, ts, tc):
     return (d ** 2).mean()
 
 
-# ───────────────────────── model ────────────────────────────
+
 class GLU(nn.Module):
     def __init__(self, d):
         super().__init__()
@@ -102,7 +100,7 @@ class TFTForecast(pl.LightningModule):
         self.net = TFTCore(n_feat, L, n_feat,
                            d_model, heads, blocks)
 
-    # ------------- Lightning plumbing -----------------------
+
     def forward(self, x):
         return self.net(x)
 
@@ -154,8 +152,6 @@ class TFTForecast(pl.LightningModule):
                 "lr_scheduler": {"scheduler": sched, "interval": "step"}}
 
 
-
-# ───────────────────────  training util  ────────────────────
 def train_one(npz: Path,
               epochs: int,
               batch: int,
@@ -163,12 +159,12 @@ def train_one(npz: Path,
               heads: int,
               blocks: int):
 
-    # ----- datamodule ---------------------------------------
+
     from src.datamodule import OrbitsModule
     dm = OrbitsModule(npz_glob=str(npz), batch_size=batch)
     dm.setup()  # gives us dm.train_ds.L for pos‑enc
 
-    # ----- scaler & feature names ---------------------------
+
     raw_stem = npz.stem.split("_enc")[0]
     scaler = joblib.load(npz.parent / f"{raw_stem}_scaler.gz")
     feats  = list(scaler.feature_names_in_)
@@ -197,7 +193,7 @@ def train_one(npz: Path,
 
     trainer.fit(model, dm)
 
-    # ------------------- test phase -------------------------
+
     model = TFTForecast.load_from_checkpoint(ckpt_cb.best_model_path)
     model.feats = feats
     device = next(model.parameters()).device
@@ -210,7 +206,6 @@ def train_one(npz: Path,
     P = torch.cat(P).numpy();  T = torch.cat(T).numpy()
     P_inv = scaler.inverse_transform(P);  T_inv = scaler.inverse_transform(T)
 
-    # ---------------- metrics ------------------------------
     metrics, mape_core = [], []
     for i, name in enumerate(feats):
         if name.endswith("_sin") or name.endswith("_cos"):
@@ -252,10 +247,9 @@ def train_one(npz: Path,
         epochs=epochs,
         batches=batch,
     )), indent=2))
-    print(f"✅ {npz.name}: overall={overall:.2f}% → {out_path}")
+    print(f"{npz.name}: overall={overall:.2f}% → {out_path}")
 
 
-# ─────────────────────────── CLI ────────────────────────────
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--npz-glob", required=True,

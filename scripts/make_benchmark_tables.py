@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-# ---------------------------- utilities ---------------------------------
 
 CORE = ["eccentricity","mean_motion","semi_major_axis"]
 
@@ -67,7 +66,6 @@ def save_table(df:pd.DataFrame, outdir:Path, name:str, index:bool=True,
                 except Exception:
                     pass
 
-    # format floats elementwise
     def fmt_val(v):
         if isinstance(v, (int, np.integer)):
             return str(v)
@@ -77,7 +75,6 @@ def save_table(df:pd.DataFrame, outdir:Path, name:str, index:bool=True,
         except Exception:
             return str(v)
 
-    # pandas >= 2.2 recommends DataFrame.map; fall back to applymap if needed
     if hasattr(pd.DataFrame, "map"):
         df_lx = df_lx.map(fmt_val)
     else:
@@ -94,7 +91,6 @@ def save_table(df:pd.DataFrame, outdir:Path, name:str, index:bool=True,
         f.write("\\begin{tabular}{%s}\n" % colspec)  # <-- ensure ternary applies inside % formatting
         f.write("\\hline\n")
 
-        # --- header + rows (make sure everything is str) ---
         if index:
             header = [str(df_lx.index.name or "")] + [str(c) for c in df_lx.columns]
             f.write(" & ".join(header) + " \\\\\n\\hline\n")
@@ -113,8 +109,8 @@ def save_table(df:pd.DataFrame, outdir:Path, name:str, index:bool=True,
         # avoid f-string here to prevent `{table}` interpolation errors
         f.write("\\caption{%s}\n\\label{%s}\n\\end{table}\n" % (cap, lab))
 
-    print(f"📄  wrote {csv_path}")
-    print(f"📄  wrote {latex_path}")
+    print(f"wrote {csv_path}")
+    print(f"wrote {latex_path}")
 
 
 def safe_cols(df:pd.DataFrame, cols:list[str])->bool:
@@ -129,7 +125,6 @@ def bootstrap_ci_gmean(values, B=1000, alpha=0.05, seed=42):
     lo, hi = np.quantile(boots, [alpha/2., 1-alpha/2.])
     return (gmean_pos(values), lo, hi)
 
-# ----------------------------- main -------------------------------------
 
 def main():
     ap = argparse.ArgumentParser()
@@ -145,11 +140,11 @@ def main():
     # Load main linear metrics
     met_path = find_metrics_file(root)
     if not met_path:
-        print("❌ No metrics file found (looked for bench_metrics.csv, metrics_linear.csv, matrix_linear.csv).", file=sys.stderr)
+        print("No metrics file found (looked for bench_metrics.csv, metrics_linear.csv, matrix_linear.csv).", file=sys.stderr)
         sys.exit(2)
     dmet = load_optional_csv(met_path)
     if dmet.empty:
-        print(f"❌ {met_path} is empty or unreadable.", file=sys.stderr)
+        print(f"{met_path} is empty or unreadable.", file=sys.stderr)
         sys.exit(2)
 
     # Try additional sources for richer tables
@@ -172,7 +167,7 @@ def main():
 
     # Basic columns sanity
     if "model" not in dmet.columns or "feature" not in dmet.columns:
-        print("❌ metrics file must include at least 'model' and 'feature' columns.", file=sys.stderr)
+        print("metrics file must include at least 'model' and 'feature' columns.", file=sys.stderr)
         sys.exit(2)
 
     # Normalize column names a bit
@@ -204,7 +199,6 @@ def main():
             print(f"ℹ️  baseline auto-set to {args.baseline}")
     baseline = args.baseline
 
-    # ----------------------------- TABLES --------------------------------
     # Table set A: overall rankings
     def agg_rmse(df): return df.groupby("model").RMSE.apply(gmean_pos).sort_values()
 

@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+
 """
 Compute Wilcoxon signed-rank tests and Cliff's delta vs. SGP4 baseline.
 
@@ -34,11 +33,7 @@ from scipy.stats import wilcoxon
 
 
 def cliffs_delta(x: np.ndarray, y: np.ndarray) -> float:
-    """
-    Cliff's delta in [-1, 1], vectorized (O(n*m)).
-    Positive => x tends to be larger than y (worse if RMSE).
-    Negative => x tends to be smaller than y (better if RMSE).
-    """
+
     if x.size == 0 or y.size == 0:
         return np.nan
     dif = x[:, None] - y[None, :]
@@ -48,7 +43,6 @@ def cliffs_delta(x: np.ndarray, y: np.ndarray) -> float:
 
 
 def benjamini_hochberg(pvals: pd.Series) -> pd.Series:
-    """Return q-values (FDR) for a list/series of p-values."""
     p = pvals.values.astype(float)
     n = np.isfinite(p).sum()
     q = np.full_like(p, np.nan, dtype=float)

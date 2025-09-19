@@ -26,7 +26,7 @@ def make_out(root: Path, name: str) -> Path:
 def savefig_loud(fig, out_path: Path):
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=160, bbox_inches="tight")
-    print(f"🖼️  wrote {out_path}")
+    print(f"wrote {out_path}")
     plt.close(fig)
 
 def load_profiles(prof_root: Path) -> pd.DataFrame:
@@ -42,7 +42,6 @@ def load_profiles(prof_root: Path) -> pd.DataFrame:
             pass
     return pd.DataFrame(rows)
 
-# ---------------------------------------------------------------------
 ap = argparse.ArgumentParser()
 ap.add_argument("--root", default="results/benchmark_v2", type=Path)
 ap.add_argument("--baseline", default="sgp4_monotonic")
@@ -74,7 +73,6 @@ F_OVF= make_out(FIG, "OVERFIT")
 
 CORE = ["eccentricity","mean_motion","semi_major_axis","inclination_deg","mean_anomaly_deg"]
 
-# ---------------- Q1 (rankings) ----------------
 core_met = dmet[dmet.feature.isin(CORE)].copy()
 if core_met.empty:
     raise RuntimeError("No core features in bench_metrics.csv – nothing to plot.")
@@ -96,7 +94,6 @@ ax.set_xlabel("Geo-mean RMSE (log)")
 ax.set_title("Overall ranking (bar)")
 savefig_loud(fig, F_Q1 / "overall_bar.png")
 
-# ---------------- Q2 (horizon curves) -----------------------------
 def plot_horizon_from_samples(dsamp: pd.DataFrame, span: str | None):
     sub = dsamp[dsamp.feature.isin(CORE)].dropna(subset=["h"]).copy()
     if "span" in sub.columns and span is not None:
@@ -185,7 +182,6 @@ if dsamp.empty:
 else:
     plot_horizon_from_samples(dsamp, span=None)
 
-# ---------- helpers built from any source ----------
 def perfile_from_any(dsamp: pd.DataFrame, dlog: pd.DataFrame) -> pd.DataFrame:
     # Prefer samples
     if not dsamp.empty:
@@ -203,7 +199,6 @@ def perfile_from_any(dsamp: pd.DataFrame, dlog: pd.DataFrame) -> pd.DataFrame:
 
 perfile = perfile_from_any(dsamp, dlog)
 
-# ---------- STATS: Wilcoxon ----------
 if not perfile.empty:
     pivot_key = ["file","h","feature"]
     common = perfile[pivot_key].drop_duplicates()
@@ -227,7 +222,6 @@ if not perfile.empty:
         ax.set_title("Paired Wilcoxon (RMSE per file/h/feature)")
         savefig_loud(fig, F_ST / "pvalues_wilcoxon.png")
 
-# ---------- Q2 residual ratios vs baseline ----------
 keys = ["file","feature","h","span"]
 base_df = (dlog[dlog.model == args.baseline][keys + ["rmse_log"]]
            .rename(columns={"rmse_log": "rmse_log_b"}))
@@ -247,7 +241,6 @@ for feat in CORE:
     ax.legend(ncol=2, fontsize=9)
     savefig_loud(fig, F_Q2 / f"residual_ratio_{feat}.png")
 
-# ---------- ROBUSTNESS: eCDFs (fallbacks work) ----------
 if not perfile.empty:
     for H in [7, 30, 90]:
         dH = perfile[perfile.h == H]
@@ -264,7 +257,6 @@ if not perfile.empty:
         ax.legend()
         savefig_loud(fig, F_RB / f"ecdf_{H}d.png")
 
-# ---------- TIME_RASTERS: fallback to window×horizon from dlog ----------
 if not dsamp.empty and "t0" in dsamp.columns and dsamp["t0"].notna().any():
     dt = dsamp.copy()
     dt["t0"] = pd.to_datetime(dt["t0"], errors="coerce")
@@ -296,7 +288,6 @@ else:
     else:
         print("ℹ️  TIME_RASTERS skipped (no t0 in samples and no w in logs).")
 
-# ---------- COST ----------
 prof = load_profiles(Path("results/profiles"))
 if not prof.empty:
     acc = core_met.groupby("model").RMSE.apply(gmean_pos).reset_index()
@@ -324,7 +315,6 @@ else:
     ax.set_title("Accuracy (profiles not found)")
     savefig_loud(fig, F_CST / "accuracy_only.png")
 
-# ---------- UNCERTAINTY ----------
 if not dsamp.empty and {"y_pred_mu","y_pred_sigma"}.issubset(dsamp.columns):
     z_grid = np.linspace(0.5, 2.5, 9)
     rows = []
@@ -339,7 +329,6 @@ if not dsamp.empty and {"y_pred_mu","y_pred_sigma"}.issubset(dsamp.columns):
     ax.set_title("Reliability diagram (all models pooled)")
     savefig_loud(fig, F_UNC / "reliability.png")
 
-# ---------- OUTLIERS ----------
 if not dsamp.empty and set(["alt_km","ecc","tle_age_d","f107"]).issubset(dsamp.columns):
     tri = (dsamp.assign(err2=lambda d: d.err**2)
                  .groupby(["model","file","h"])
@@ -354,7 +343,6 @@ if not dsamp.empty and set(["alt_km","ecc","tle_age_d","f107"]).issubset(dsamp.c
         ax.set_yscale("log"); ax.set_title(f"RMSE vs {x}")
         savefig_loud(fig, F_OT / f"scatter_rmse_vs_{x}.png")
 
-# ---------- OVERFIT ----------
 hist_root = Path("results/history")
 if hist_root.exists():
     frames = []
@@ -372,7 +360,7 @@ if hist_root.exists():
             ax.legend(fontsize=9, ncol=2)
             savefig_loud(fig, F_OVF / "val_curves.png")
 
-print(f"✅  Figures written to {FIG.resolve()}")
+print(f"Figures written to {FIG.resolve()}")
 
 # ===================== EXTRAS → results2 (final) =====================
 RES2 = Path("results2"); RES2.mkdir(parents=True, exist_ok=True)
@@ -519,11 +507,11 @@ def plot_sgp4_simple_curve(dlog: pd.DataFrame, baseline: str = "sgp4_monotonic")
     """Single baseline curve for semi_major_axis (median across spans/windows)."""
     need = {"model","feature","h","rmse_log"}
     if not need.issubset(dlog.columns):
-        print("ℹ️  SGP4 curve skipped: required columns not in dlog.")
+        print("SGP4 curve skipped: required columns not in dlog.")
         return
     sub = dlog[(dlog.model == baseline) & (dlog.feature == "semi_major_axis") & dlog["h"].notna()]
     if sub.empty:
-        print(f"ℹ️  SGP4 curve skipped: no rows for model={baseline}.")
+        print(f"SGP4 curve skipped: no rows for model={baseline}.")
         return
     agg = sub.groupby("h")["rmse_log"].median().reset_index()
     agg["RMSE"] = 10.0 ** agg["rmse_log"]; agg = agg.sort_values("h")
@@ -542,4 +530,4 @@ def plot_sgp4_simple_curve(dlog: pd.DataFrame, baseline: str = "sgp4_monotonic")
 # Generate the figures
 plot_sma_grid_all_models(dlog, span_order=args.span_order, baseline=args.baseline)
 plot_sgp4_simple_curve(dlog, baseline=args.baseline)
-# =================== END EXTRAS → results2 (final) =====================
+

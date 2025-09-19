@@ -1,35 +1,4 @@
-#!/usr/bin/env python3
-"""
-Pareto trade-off plotter (cost vs accuracy) with robust merging and fallbacks.
 
-- Metrics CSV (bench_metrics.csv) may use 'horizon_days'; features are normalized to lowercase.
-- Y-axis:
-    * Uses median_ratio if present.
-    * Else computes RMSE ratio vs any model whose name contains 'sgp4' (case-insensitive).
-    * If a given (feature,horizon) row lacks an SGP4 baseline, falls back to raw RMSE for that row.
-- Merge key:
-    * Maps model names to a 'model_family' (e.g., 'lstm_h128' -> 'lstm', 'sgp4_monotonic' -> 'sgp4').
-    * Resources are joined by model_family and auto-expanded across (feature,horizon).
-- Cost axis:
-    * Uses the chosen --cost_metric from resources (e.g., params_m, mem_mb, latency_ms).
-    * Missing costs are treated as 0.0 so SGP4 can still be plotted.
-
-Usage example:
-  python scripts/pareto_tradeoff.py \
-    --metrics results/benchmark_v2/bench_metrics.csv \
-    --resources results/benchmark_v2/resources.csv \
-    --horizon 7 \
-    --cost_metric params_m \
-    --outdir results/benchmark_v2/figures
-
-  # Memory on X and horizon 30:
-  python scripts/pareto_tradeoff.py \
-    --metrics results/benchmark_v2/bench_metrics.csv \
-    --resources results/benchmark_v2/resources.csv \
-    --horizon 30 \
-    --cost_metric mem_mb \
-    --outdir results/benchmark_v2/figures
-"""
 
 import argparse
 import os
@@ -39,8 +8,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-
-# ----------------------------- helpers -------------------------------- #
 
 def to_family(name: str) -> str:
     """Map raw model names to a family key."""
@@ -104,12 +71,7 @@ def standardize_metrics(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_y_metric(df: pd.DataFrame):
-    """
-    Create df['metric_y'] and a y-label.
-    Priority:
-      1) Use provided median_ratio if available (verbatim).
-      2) Else compute RMSE ratio vs SGP4 where available; fall back to raw RMSE per-row if baseline missing.
-    """
+
     # Case 1: direct ratio is present
     if "median_ratio" in df.columns and df["median_ratio"].notna().any():
         out = df.copy()
@@ -170,7 +132,6 @@ def enforce_single_point_per_family(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-# ----------------------------- plotting -------------------------------- #
 
 def plot_one_feature(merged: pd.DataFrame, horizon: int, feature: str,
                      cost_metric: str, ylabel: str, outdir: str):
@@ -238,7 +199,6 @@ def plot_one_feature(merged: pd.DataFrame, horizon: int, feature: str,
     return out
 
 
-# ------------------------------- main ---------------------------------- #
 
 def main():
     ap = argparse.ArgumentParser(description="Pareto trade-off plots (merge by model_family; robust fallbacks).")

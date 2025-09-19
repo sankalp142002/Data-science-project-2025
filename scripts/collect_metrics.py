@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# scripts/collect_matrix_v2.py
+
 """
 Benchmark v2 collector:
 - Keeps your per-file metrics flow
@@ -79,7 +78,7 @@ def collect_file_metrics(root:Path, filt:str)->pd.DataFrame:
                     **top_num
                 })
     if not rows:
-        sys.exit("❌  No metrics_*.json found. Check --root.")
+        sys.exit("No metrics_*.json found. Check --root.")
     df = pd.DataFrame(rows)
     for c in ("RMSE","MAPE%","h","w","overall_acc_percent"):
         if c in df.columns: df[c] = pd.to_numeric(df[c], errors="coerce")
@@ -170,7 +169,7 @@ if __name__ == "__main__":
         df_samples["feature"] = df_samples["feature"].map(norm_feat)
         df_samples.to_csv(args.out_root / "bench_samples.csv", index=False)
 
-    print("✅  Wrote:",
+    print(" Wrote:",
           args.out_root / "bench_metrics.csv",
           args.out_root / "bench_metrics_log.csv",
           (args.out_root / "bench_samples.csv" if not df_samples.empty else "(no samples)"),
